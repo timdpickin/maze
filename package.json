@@ -1,0 +1,17 @@
+{
+  "name": "schnappt",
+  "version": "1.0.0",
+  "description": "Procedural Maze Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^4.1.1"
+  }
+}
