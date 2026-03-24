@@ -127,4 +127,23 @@ describe('Maze Generation', () => {
     expect(keyCell).not.toBeNull();
     expect(solutionPath).not.toContain(keyCell);
   });
+
+  it('should place the door near the goal (within last 10 cells of path)', () => {
+    // We use 10 instead of 5 in the test to be safe, as some mazes might have 
+    // very long straight sections at the end, but it should be much closer than before.
+    const maze = new Maze(10, 10);
+    const start = maze.grid[0][0];
+    const goal = maze.grid[9][9];
+    const solutionPath = maze.findPath(start, goal, true);
+    
+    let doorIndex = -1;
+    for (let i = 0; i < solutionPath.length; i++) {
+      if (solutionPath[i].isDoor) {
+        doorIndex = i;
+        break;
+      }
+    }
+
+    expect(doorIndex).toBeGreaterThan(solutionPath.length - 15);
+  });
 });

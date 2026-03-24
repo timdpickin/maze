@@ -94,11 +94,11 @@ export class Maze {
     if (solutionPath.length < 5) return; // Too short to meaningfully place things
 
     const solutionSet = new Set(solutionPath);
-    let doorIndex = Math.floor(solutionPath.length * 0.3);
+    let doorIndex = solutionPath.length - 2; // Start from the very end (just before goal)
     let sideBranchCells: Cell[] = [];
 
-    // Search for a door position that has side branches before it
-    while (doorIndex < solutionPath.length - 2) {
+    // Search backwards for the best door position
+    while (doorIndex >= 1) {
       sideBranchCells = [];
       const preDoorCells = solutionPath.slice(0, doorIndex + 1);
       for (const cell of preDoorCells) {
@@ -106,10 +106,15 @@ export class Maze {
       }
 
       if (sideBranchCells.length > 0) {
-        break; // Found a valid spot
+        // If we are already within 5 squares of the goal, we found the perfect spot.
+        // If we are further, we keep searching backwards until we find the first valid spot.
+        // Actually, searching backwards from the goal ALWAYS gives us the spot closest to the goal.
+        break; 
       }
-      doorIndex++;
+      doorIndex--;
     }
+
+    if (doorIndex < 1) doorIndex = Math.floor(solutionPath.length / 2); // Absolute fallback
 
     const doorCell = solutionPath[doorIndex];
     const nextCell = solutionPath[doorIndex + 1];
