@@ -10,6 +10,9 @@ export class Cell {
   readonly y: number;
   visited: boolean = false;
   discovered: boolean = false;
+  hasKey: boolean = false;
+  isDoor: boolean = false;
+  doorDirection: keyof Walls | null = null;
   walls: Walls = {
     top: true,
     right: true,
@@ -33,6 +36,110 @@ export class Maze {
     this.cols = cols;
     this.setup();
     this.generate();
+    this.placeDoorAndKey();
+  }
+
+  public findPath(start: Cell, end: Cell, ignoreDoors: boolean = false): Cell[] {
+    const queue: Cell[] = [start];
+    const visited = new Set<Cell>([start]);
+    const parent = new Map<Cell, Cell | null>();
+    parent.set(start, null);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current === end) {
+        const path: Cell[] = [];
+        let temp: Cell | null = end;
+        while (temp !== null) {
+          path.push(temp);
+          temp = parent.get(temp)!;
+        }
+        return path.reverse();
+      }
+
+      for (const neighbor of this.getConnectedNeighbors(current, ignoreDoors)) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          parent.set(neighbor, current);
+          queue.push(neighbor);
+        }
+      }
+    }
+    return [];
+  }
+
+  private getConnectedNeighbors(cell: Cell, ignoreDoors: boolean = false): Cell[] {
+    const neighbors: Cell[] = [];
+    const { x, y } = cell;
+
+    const canMove = (dir: keyof Walls) => {
+      if (cell.walls[dir]) return false;
+      if (!ignoreDoors && cell.isDoor && cell.doorDirection === dir) return false;
+      return true;
+    };
+
+    if (y > 0 && canMove('top')) neighbors.push(this.grid[y - 1][x]);
+    if (x < this.cols - 1 && canMove('right')) neighbors.push(this.grid[y][x + 1]);
+    if (y < this.rows - 1 && canMove('bottom')) neighbors.push(this.grid[y + 1][x]);
+    if (x > 0 && canMove('left')) neighbors.push(this.grid[y][x - 1]);
+
+    return neighbors;
+  }
+
+  private placeDoorAndKey() {
+    const start = this.grid[0][0];
+    const goal = this.grid[this.rows - 1][this.cols - 1];
+    const solutionPath = this.findPath(start, goal, true); // Ignore doors for placement
+
+    if (solutionPath.length < 5) return; // Too short to meaningfully place things
+
+    // Place Door: Random spot in the middle of the solution path
+    const doorIndex = Math.floor(solutionPath.length * 0.4) + Math.floor(Math.random() * (solutionPath.length * 0.2));
+    const doorCell = solutionPath[doorIndex];
+    const nextCell = solutionPath[doorIndex + 1];
+
+    // Determine direction
+    if (nextCell.y < doorCell.y) doorCell.doorDirection = 'top';
+    else if (nextCell.x > doorCell.x) doorCell.doorDirection = 'right';
+    else if (nextCell.y > doorCell.y) doorCell.doorDirection = 'bottom';
+    else if (nextCell.x < doorCell.x) doorCell.doorDirection = 'left';
+
+    doorCell.isDoor = true;
+
+    // Place Key: Side branch originating BEFORE the door
+    const preDoorCells = solutionPath.slice(0, doorIndex + 1);
+    const sideBranchCells: Cell[] = [];
+    const solutionSet = new Set(solutionPath);
+
+    for (const cell of preDoorCells) {
+      this.collectSideBranches(cell, solutionSet, sideBranchCells);
+    }
+
+    if (sideBranchCells.length > 0) {
+      const keyCell = sideBranchCells[Math.floor(Math.random() * sideBranchCells.length)];
+      keyCell.hasKey = true;
+    } else {
+      // Fallback if no side branches: just pick an earlier path cell (not ideal but safe)
+      const keyCell = solutionPath[Math.floor(doorIndex / 2)];
+      keyCell.hasKey = true;
+    }
+  }
+
+  private collectSideBranches(current: Cell, solutionSet: Set<Cell>, branchList: Cell[]) {
+    for (const neighbor of this.getConnectedNeighbors(current)) {
+      if (!solutionSet.has(neighbor) && !branchList.includes(neighbor)) {
+        this.traverseBranch(neighbor, solutionSet, branchList);
+      }
+    }
+  }
+
+  private traverseBranch(current: Cell, solutionSet: Set<Cell>, branchList: Cell[]) {
+    branchList.push(current);
+    for (const neighbor of this.getConnectedNeighbors(current)) {
+      if (!solutionSet.has(neighbor) && !branchList.includes(neighbor)) {
+        this.traverseBranch(neighbor, solutionSet, branchList);
+      }
+    }
   }
 
   private setup() {

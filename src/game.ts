@@ -9,13 +9,17 @@ class Game {
   private overlay: HTMLElement;
   private overlayText: HTMLElement;
   private startButton: HTMLButtonElement;
+  private toast: HTMLElement;
   private isGameOver = false;
+  private hasKey = false;
+  private toastTimeout: number | null = null;
 
   constructor() {
     this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
     this.overlay = document.getElementById('overlay')!;
     this.overlayText = document.getElementById('overlay-text')!;
     this.startButton = document.getElementById('start-button') as HTMLButtonElement;
+    this.toast = document.getElementById('toast')!;
 
     this.maze = new Maze(10, 10);
     this.maze.grid[0][0].discovered = true; // Mark start as discovered for initial preview
@@ -32,8 +36,20 @@ class Game {
     this.playerPos = { x: 0, y: 0 };
     this.maze.grid[0][0].discovered = true; // Mark start as discovered
     this.isGameOver = false;
+    this.hasKey = false;
     this.overlay.classList.add('hidden');
     this.render();
+  }
+
+  private showToast(message: string) {
+    if (this.toastTimeout) {
+      window.clearTimeout(this.toastTimeout);
+    }
+    this.toast.innerText = message;
+    this.toast.classList.remove('hidden');
+    this.toastTimeout = window.setTimeout(() => {
+      this.toast.classList.add('hidden');
+    }, 3000);
   }
 
   private handleKey(e: KeyboardEvent) {
@@ -41,23 +57,51 @@ class Game {
 
     const cell = this.maze.grid[this.playerPos.y][this.playerPos.x];
     let moved = false;
+    let nextX = this.playerPos.x;
+    let nextY = this.playerPos.y;
+    let dir: keyof Walls | null = null;
 
     if (e.key === 'ArrowUp' && !cell.walls.top) {
-      this.playerPos.y--;
-      moved = true;
+      nextY--;
+      dir = 'top';
     } else if (e.key === 'ArrowRight' && !cell.walls.right) {
-      this.playerPos.x++;
-      moved = true;
+      nextX++;
+      dir = 'right';
     } else if (e.key === 'ArrowDown' && !cell.walls.bottom) {
-      this.playerPos.y++;
-      moved = true;
+      nextY++;
+      dir = 'bottom';
     } else if (e.key === 'ArrowLeft' && !cell.walls.left) {
-      this.playerPos.x--;
-      moved = true;
+      nextX--;
+      dir = 'left';
+    }
+
+    if (dir) {
+      // Check for door
+      if (cell.isDoor && cell.doorDirection === dir) {
+        if (this.hasKey) {
+          cell.isDoor = false; // Unlock!
+          this.showToast('Door Unlocked!');
+          moved = true;
+        } else {
+          this.showToast('The door is locked! Find the key.');
+        }
+      } else {
+        moved = true;
+      }
     }
 
     if (moved) {
-      this.maze.grid[this.playerPos.y][this.playerPos.x].discovered = true;
+      this.playerPos.x = nextX;
+      this.playerPos.y = nextY;
+      const newCell = this.maze.grid[this.playerPos.y][this.playerPos.x];
+      newCell.discovered = true;
+
+      if (newCell.hasKey) {
+        this.hasKey = true;
+        newCell.hasKey = false;
+        this.showToast('You found the key!');
+      }
+
       this.checkWin();
       this.render();
     }

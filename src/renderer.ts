@@ -29,6 +29,11 @@ export class Renderer {
           this.ctx.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
           
           this.drawCellWalls(cell);
+
+          // Draw Key if present
+          if (cell.hasKey) {
+            this.drawKey(x, y);
+          }
           
           // Draw goal only if discovered
           if (x === maze.cols - 1 && y === maze.rows - 1) {
@@ -45,35 +50,44 @@ export class Renderer {
   }
 
   private drawCellWalls(cell: Cell) {
-    this.ctx.strokeStyle = '#fff';
-    this.ctx.lineWidth = 2;
     const x = cell.x * this.cellSize;
     const y = cell.y * this.cellSize;
 
-    if (cell.walls.top) {
+    const drawWall = (dir: keyof typeof cell.walls, startX: number, startY: number, endX: number, endY: number) => {
+      if (!cell.walls[dir] && cell.doorDirection !== dir) return;
+
       this.ctx.beginPath();
-      this.ctx.moveTo(x, y);
-      this.ctx.lineTo(x + this.cellSize, y);
+      this.ctx.moveTo(startX, startY);
+      this.ctx.lineTo(endX, endY);
+
+      if (cell.isDoor && cell.doorDirection === dir) {
+        this.ctx.strokeStyle = '#f00'; // Red for door
+        this.ctx.lineWidth = 6;
+      } else {
+        this.ctx.strokeStyle = '#fff';
+        this.ctx.lineWidth = 2;
+      }
       this.ctx.stroke();
-    }
-    if (cell.walls.right) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x + this.cellSize, y);
-      this.ctx.lineTo(x + this.cellSize, y + this.cellSize);
-      this.ctx.stroke();
-    }
-    if (cell.walls.bottom) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, y + this.cellSize);
-      this.ctx.lineTo(x + this.cellSize, y + this.cellSize);
-      this.ctx.stroke();
-    }
-    if (cell.walls.left) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, y);
-      this.ctx.lineTo(x, y + this.cellSize);
-      this.ctx.stroke();
-    }
+    };
+
+    drawWall('top', x, y, x + this.cellSize, y);
+    drawWall('right', x + this.cellSize, y, x + this.cellSize, y + this.cellSize);
+    drawWall('bottom', x, y + this.cellSize, x + this.cellSize, y + this.cellSize);
+    drawWall('left', x, y, x, y + this.cellSize);
+  }
+
+  private drawKey(kx: number, ky: number) {
+    const x = (kx + 0.5) * this.cellSize;
+    const y = (ky + 0.5) * this.cellSize;
+    const size = this.cellSize * 0.2;
+
+    this.ctx.fillStyle = '#ff0'; // Yellow for key
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, size, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // Draw a small handle to make it look like a key
+    this.ctx.fillRect(x - size, y + size * 0.5, size * 2, size * 0.5);
   }
 
   private drawPlayer(pos: { x: number, y: number }) {

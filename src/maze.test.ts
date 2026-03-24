@@ -41,4 +41,71 @@ describe('Maze Generation', () => {
       }
     }
   });
+
+  it('should find a path from start to goal (ignoring doors)', () => {
+    const maze = new Maze(10, 10);
+    const start = maze.grid[0][0];
+    const goal = maze.grid[9][9];
+    const path = maze.findPath(start, goal, true);
+
+    expect(path.length).toBeGreaterThan(0);
+    expect(path[0]).toBe(start);
+    expect(path[path.length - 1]).toBe(goal);
+  });
+
+  it('should place exactly one door and one key', () => {
+    const maze = new Maze(10, 10);
+    let doorCount = 0;
+    let keyCount = 0;
+
+    for (let y = 0; y < maze.rows; y++) {
+      for (let x = 0; x < maze.cols; x++) {
+        if (maze.grid[y][x].isDoor) doorCount++;
+        if (maze.grid[y][x].hasKey) keyCount++;
+      }
+    }
+
+    expect(doorCount).toBe(1);
+    expect(keyCount).toBe(1);
+  });
+
+  it('should place the door on the solution path', () => {
+    const maze = new Maze(10, 10);
+    const start = maze.grid[0][0];
+    const goal = maze.grid[9][9];
+    const path = maze.findPath(start, goal, true);
+    
+    let doorOnPath = false;
+    for (let y = 0; y < maze.rows; y++) {
+      for (let x = 0; x < maze.cols; x++) {
+        if (maze.grid[y][x].isDoor) {
+          if (path.includes(maze.grid[y][x])) {
+            doorOnPath = true;
+          }
+        }
+      }
+    }
+    expect(doorOnPath).toBe(true);
+  });
+
+  it('should not find a path if the door is blocking and ignoreDoors is false', () => {
+    const maze = new Maze(10, 10);
+    const start = maze.grid[0][0];
+    const goal = maze.grid[9][9];
+    
+    // Find path with ignoreDoors = false (default)
+    const path = maze.findPath(start, goal, false);
+    
+    // The path should be blocked by the door
+    expect(path.length).toBe(0);
+  });
+
+  it('should find a path if ignoreDoors is true', () => {
+    const maze = new Maze(10, 10);
+    const start = maze.grid[0][0];
+    const goal = maze.grid[9][9];
+    
+    const path = maze.findPath(start, goal, true);
+    expect(path.length).toBeGreaterThan(0);
+  });
 });
