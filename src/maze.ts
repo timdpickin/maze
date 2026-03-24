@@ -93,8 +93,24 @@ export class Maze {
 
     if (solutionPath.length < 5) return; // Too short to meaningfully place things
 
-    // Place Door: Random spot in the middle of the solution path
-    const doorIndex = Math.floor(solutionPath.length * 0.4) + Math.floor(Math.random() * (solutionPath.length * 0.2));
+    const solutionSet = new Set(solutionPath);
+    let doorIndex = Math.floor(solutionPath.length * 0.3);
+    let sideBranchCells: Cell[] = [];
+
+    // Search for a door position that has side branches before it
+    while (doorIndex < solutionPath.length - 2) {
+      sideBranchCells = [];
+      const preDoorCells = solutionPath.slice(0, doorIndex + 1);
+      for (const cell of preDoorCells) {
+        this.collectSideBranches(cell, solutionSet, sideBranchCells);
+      }
+
+      if (sideBranchCells.length > 0) {
+        break; // Found a valid spot
+      }
+      doorIndex++;
+    }
+
     const doorCell = solutionPath[doorIndex];
     const nextCell = solutionPath[doorIndex + 1];
 
@@ -106,22 +122,13 @@ export class Maze {
 
     doorCell.isDoor = true;
 
-    // Place Key: Side branch originating BEFORE the door
-    const preDoorCells = solutionPath.slice(0, doorIndex + 1);
-    const sideBranchCells: Cell[] = [];
-    const solutionSet = new Set(solutionPath);
-
-    for (const cell of preDoorCells) {
-      this.collectSideBranches(cell, solutionSet, sideBranchCells);
-    }
-
     if (sideBranchCells.length > 0) {
       const keyCell = sideBranchCells[Math.floor(Math.random() * sideBranchCells.length)];
       keyCell.hasKey = true;
     } else {
-      // Fallback if no side branches: just pick an earlier path cell (not ideal but safe)
-      const keyCell = solutionPath[Math.floor(doorIndex / 2)];
-      keyCell.hasKey = true;
+      // Very rare fallback: place key on the path (this should almost never happen in a maze)
+      const fallbackIndex = Math.floor(doorIndex / 2);
+      solutionPath[fallbackIndex].hasKey = true;
     }
   }
 

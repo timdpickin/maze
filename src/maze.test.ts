@@ -108,4 +108,23 @@ describe('Maze Generation', () => {
     const path = maze.findPath(start, goal, true);
     expect(path.length).toBeGreaterThan(0);
   });
+
+  it('should place the key on a side branch, not the solution path', () => {
+    const maze = new Maze(10, 10);
+    const start = maze.grid[0][0];
+    const goal = maze.grid[9][9];
+    const solutionPath = maze.findPath(start, goal, true);
+    
+    let keyCell: any = null;
+    for (let y = 0; y < maze.rows; y++) {
+      for (let x = 0; x < maze.cols; x++) {
+        if (maze.grid[y][x].hasKey) {
+          keyCell = maze.grid[y][x];
+        }
+      }
+    }
+
+    expect(keyCell).not.toBeNull();
+    expect(solutionPath).not.toContain(keyCell);
+  });
 });
